@@ -1,0 +1,61 @@
+{
+  "wikipedia": {
+    "consecutive_failures": 43,
+    "last_failure": 1782612697.9241,
+    "last_retry": 1782612697.9241
+  },
+  "yahoo": {
+    "consecutive_failures": 0,
+    "last_success": 1782790051.827446,
+    "last_failure": 1782789096.573684,
+    "last_retry": 1782789096.573684
+  },
+  "coingecko": {
+    "consecutive_failures": 8,
+    "last_success": 1782786005.7976313,
+    "last_failure": 1782789066.5827384,
+    "last_retry": 1782789066.5827384
+  },
+  "blockchain_info": {
+    "consecutive_failures": 4,
+    "last_success": 1782786405.5139513,
+    "last_failure": 1782789044.082958,
+    "last_retry": 1782789044.082958
+  },
+  "etherscan": {
+    "consecutive_failures": 8,
+    "last_success": 1782786408.0356266,
+    "last_failure": 1782789055.2958395,
+    "last_retry": 1782789055.2958395
+  },
+  "alternative_me": {
+    "consecutive_failures": 2,
+    "last_success": 1782786021.1259596,
+    "last_failure": 1782789061.0643253,
+    "last_retry": 1782789061.0643253
+  },
+  "fred": {
+    "consecutive_failures": 10,
+    "last_failure": 1782789089.1344414,
+    "last_retry": 1782789089.1344414,
+    "last_success": 1782786026.0147493
+  },
+  "binance": {
+    "consecutive_failures": 30,
+    "last_success": 1782786042.4007137,
+    "last_failure": 1782788569.2178328,
+    "last_retry": 1782788569.2178328
+  },
+  "defillama": {
+    "consecutive_failures": 1,
+    "last_success": 1782786042.8267815,
+    "last_failure": 1782788571.3773208,
+    "last_retry": 1782788571.3773208
+  },
+  "rss": {
+    "consecutive_failures": 23,
+    "last_success": 1782784312.4627209,
+    "last_failure": 1782788646.6065714,
+    "last_retry": 1782788646.6065714
+  }
+}

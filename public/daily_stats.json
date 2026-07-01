@@ -1,0 +1,73 @@
+{
+  "days": [
+    {
+      "date": "2026-06-23",
+      "total": 2,
+      "by_asset_type": {
+        "crypto": 2
+      },
+      "ts": 1782183551.4366047
+    },
+    {
+      "date": "2026-06-25",
+      "total": 7,
+      "by_asset_type": {
+        "stock": 5,
+        "macro": 1,
+        "crypto": 1
+      },
+      "ts": 1782360240.7272432
+    },
+    {
+      "date": "2026-06-26",
+      "total": 23,
+      "by_asset_type": {
+        "stock": 21,
+        "macro": 2
+      },
+      "ts": 1782441032.1997547
+    },
+    {
+      "date": "2026-06-27",
+      "total": 1,
+      "by_asset_type": {
+        "crypto": 1
+      },
+      "ts": 1782492659.545977
+    },
+    {
+      "date": "2026-06-28",
+      "total": 121,
+      "by_asset_type": {
+        "crypto": 3,
+        "stock": 105,
+        "narrative": 7,
+        "derivatives": 1,
+        "macro": 5
+      },
+      "ts": 1782577401.389152
+    },
+    {
+      "date": "2026-06-29",
+      "total": 96,
+      "by_asset_type": {
+        "macro": 12,
+        "narrative": 58,
+        "crypto": 22,
+        "stock": 4
+      },
+      "ts": 1782662758.620466
+    },
+    {
+      "date": "2026-06-30",
+      "total": 51,
+      "by_asset_type": {
+        "derivatives": 1,
+        "narrative": 9,
+        "macro": 6,
+        "crypto": 35
+      },
+      "ts": 1782782527.8327289
+    }
+  ]
+}
