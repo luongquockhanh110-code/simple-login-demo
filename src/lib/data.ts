@@ -103,7 +103,7 @@ function _sleep(ms) {
  * 2. CORS Proxy Helper
  * ================================================================ */
 
-const CORS_PROXY = 'https://corsproxy.io/?';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 function proxyUrl(url) {
   return CORS_PROXY + encodeURIComponent(url);
