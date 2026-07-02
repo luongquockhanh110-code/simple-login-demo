@@ -441,37 +441,35 @@ const DataAPI = {
     const params = range5d
       ? `?interval=1d&range=5d`
       : `?period1=1577836800&period2=${Math.floor(Date.now() / 1000)}&interval=1d`;
-    const url = proxyUrl(baseUrl + params);
 
     for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const resp = await fetch(url);
-        if (resp.status === 429) {
-          const wait = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-          console.warn(`[fetchYahoo] ${symbol} rate limited, retry in ${(wait / 1000).toFixed(1)}s`);
-          await _sleep(wait);
-          continue;
-        }
-        if (!resp.ok) {
-          // Fallback: try range=max (same as Python fallback logic)
-          if (!range5d) {
-            const fallbackUrl = proxyUrl(baseUrl + '?range=max&interval=1d');
-            const resp2 = await fetch(fallbackUrl);
-            if (!resp2.ok) return null;
-            const data2 = await resp2.json();
-            return this._parseYahooChart(data2);
-          }
-          return null;
-        }
-        const data = await resp.json();
-        if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
-        return this._parseYahooChart(data);
-      } catch (e) {
-        console.warn(`[fetchYahoo] ${symbol} attempt ${attempt + 1}/3 failed:`, e.message);
-        if (attempt < 2) {
-          await _sleep(Math.pow(2, attempt) * 1000 + Math.random() * 1000);
+      const resp = await proxyFetch(baseUrl + params);
+      if (resp && resp.ok) {
+        try {
+          const data = await resp.json();
+          if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
+          return this._parseYahooChart(data);
+        } catch (e) {
+          console.warn(`[fetchYahoo] ${symbol} JSON parse failed:`, e.message);
         }
       }
+      if (resp && resp.status === 429) {
+        const wait = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        console.warn(`[fetchYahoo] ${symbol} rate limited, retry in ${(wait / 1000).toFixed(1)}s`);
+        await _sleep(wait);
+        continue;
+      }
+      if (!range5d) {
+        const resp2 = await proxyFetch(baseUrl + '?range=max&interval=1d');
+        if (resp2 && resp2.ok) {
+          try {
+            const data2 = await resp2.json();
+            if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
+            return this._parseYahooChart(data2);
+          } catch (_) { /* fallthrough */ }
+        }
+      }
+      if (attempt < 2) await _sleep(Math.pow(2, attempt) * 1000 + Math.random() * 1000);
     }
     if (typeof SourceHealth !== 'undefined') SourceHealth.recordFailure('yahoo');
     return null;
