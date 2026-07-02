@@ -100,13 +100,72 @@ function _sleep(ms) {
 
 
 /* ================================================================
- * 2. CORS Proxy Helper
+ * 2. CORS Proxy Helper — rotates through multiple public proxies
+ *    because single providers (allorigins/corsproxy.io) frequently
+ *    block deployed domains with 403 or go offline.
  * ================================================================ */
 
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+  (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  (u) => 'https://corsproxy.io/?' + encodeURIComponent(u),
+  (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  (u) => 'https://cors.eu.org/' + u,
+  (u) => 'https://thingproxy.freeboard.io/fetch/' + u,
+];
 
 function proxyUrl(url) {
-  return CORS_PROXY + encodeURIComponent(url);
+  return CORS_PROXIES[0](url);
+}
+
+/** Fetch a URL via the CORS proxy list, returning the first successful Response. */
+async function proxyFetch(rawUrl, options = {}) {
+  let lastErr = null;
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    try {
+      const resp = await fetch(CORS_PROXIES[i](rawUrl), options);
+      if (resp.ok) return resp;
+      if (resp.status === 429) return resp;
+      lastErr = new Error(`proxy ${i} HTTP ${resp.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (lastErr) console.warn('[proxyFetch] all proxies failed for', rawUrl, lastErr.message);
+  return null;
+}
+
+/** JSON fetch through proxy rotation with in-memory caching. */
+async function proxyFetchJson(rawUrl, ttl = 60, sourceName = null) {
+  const key = 'PROX::' + rawUrl;
+  const cached = _cache.get(key);
+  if (cached && Date.now() - cached.ts < ttl * 1000) return cached.data;
+  const resp = await proxyFetch(rawUrl);
+  if (!resp || !resp.ok) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+  try {
+    const data = await resp.json();
+    _cache.set(key, { data, ts: Date.now() });
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess(sourceName);
+    return data;
+  } catch (e) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+}
+
+/** Text fetch through proxy rotation (for RSS/XML). */
+async function proxyFetchText(rawUrl, sourceName = null) {
+  const resp = await proxyFetch(rawUrl, {
+    headers: { 'Accept': 'text/xml, application/rss+xml, text/html, */*' },
+  });
+  if (!resp || !resp.ok) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+  if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess(sourceName);
+  return await resp.text();
 }
 
 
