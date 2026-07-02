@@ -725,9 +725,8 @@ const DataAPI = {
     if (!apiKey) return null;
     const rawUrl = `https://api.stlouisfed.org/fred/series/observations`
       + `?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=2`;
-    const url = proxyUrl(rawUrl);
     try {
-      const data = await cachedFetch(url, {}, 3600, 'fred');
+      const data = await proxyFetchJson(rawUrl, 3600, 'fred');
       if (!data) return null;
       const obs = data.observations || [];
       if (obs.length < 2) return null;
