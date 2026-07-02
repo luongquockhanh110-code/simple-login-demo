@@ -845,8 +845,7 @@ const DataAPI = {
    * -------------------------------------------------------------- */
   async fetchRSS(feedUrl) {
     try {
-      const url = proxyUrl(feedUrl);
-      const text = await fetchText(url, 'rss');
+      const text = await proxyFetchText(feedUrl, 'rss');
       if (!text) return null;
 
       // Parse XML in browser
