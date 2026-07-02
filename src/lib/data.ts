@@ -100,13 +100,72 @@ function _sleep(ms) {
 
 
 /* ================================================================
- * 2. CORS Proxy Helper
+ * 2. CORS Proxy Helper — rotates through multiple public proxies
+ *    because single providers (allorigins/corsproxy.io) frequently
+ *    block deployed domains with 403 or go offline.
  * ================================================================ */
 
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+  (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  (u) => 'https://corsproxy.io/?' + encodeURIComponent(u),
+  (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  (u) => 'https://cors.eu.org/' + u,
+  (u) => 'https://thingproxy.freeboard.io/fetch/' + u,
+];
 
 function proxyUrl(url) {
-  return CORS_PROXY + encodeURIComponent(url);
+  return CORS_PROXIES[0](url);
+}
+
+/** Fetch a URL via the CORS proxy list, returning the first successful Response. */
+async function proxyFetch(rawUrl, options = {}) {
+  let lastErr = null;
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    try {
+      const resp = await fetch(CORS_PROXIES[i](rawUrl), options);
+      if (resp.ok) return resp;
+      if (resp.status === 429) return resp;
+      lastErr = new Error(`proxy ${i} HTTP ${resp.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (lastErr) console.warn('[proxyFetch] all proxies failed for', rawUrl, lastErr.message);
+  return null;
+}
+
+/** JSON fetch through proxy rotation with in-memory caching. */
+async function proxyFetchJson(rawUrl, ttl = 60, sourceName = null) {
+  const key = 'PROX::' + rawUrl;
+  const cached = _cache.get(key);
+  if (cached && Date.now() - cached.ts < ttl * 1000) return cached.data;
+  const resp = await proxyFetch(rawUrl);
+  if (!resp || !resp.ok) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+  try {
+    const data = await resp.json();
+    _cache.set(key, { data, ts: Date.now() });
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess(sourceName);
+    return data;
+  } catch (e) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+}
+
+/** Text fetch through proxy rotation (for RSS/XML). */
+async function proxyFetchText(rawUrl, sourceName = null) {
+  const resp = await proxyFetch(rawUrl, {
+    headers: { 'Accept': 'text/xml, application/rss+xml, text/html, */*' },
+  });
+  if (!resp || !resp.ok) {
+    if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordFailure(sourceName);
+    return null;
+  }
+  if (sourceName && typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess(sourceName);
+  return await resp.text();
 }
 
 
@@ -382,37 +441,35 @@ const DataAPI = {
     const params = range5d
       ? `?interval=1d&range=5d`
       : `?period1=1577836800&period2=${Math.floor(Date.now() / 1000)}&interval=1d`;
-    const url = proxyUrl(baseUrl + params);
 
     for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const resp = await fetch(url);
-        if (resp.status === 429) {
-          const wait = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-          console.warn(`[fetchYahoo] ${symbol} rate limited, retry in ${(wait / 1000).toFixed(1)}s`);
-          await _sleep(wait);
-          continue;
-        }
-        if (!resp.ok) {
-          // Fallback: try range=max (same as Python fallback logic)
-          if (!range5d) {
-            const fallbackUrl = proxyUrl(baseUrl + '?range=max&interval=1d');
-            const resp2 = await fetch(fallbackUrl);
-            if (!resp2.ok) return null;
-            const data2 = await resp2.json();
-            return this._parseYahooChart(data2);
-          }
-          return null;
-        }
-        const data = await resp.json();
-        if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
-        return this._parseYahooChart(data);
-      } catch (e) {
-        console.warn(`[fetchYahoo] ${symbol} attempt ${attempt + 1}/3 failed:`, e.message);
-        if (attempt < 2) {
-          await _sleep(Math.pow(2, attempt) * 1000 + Math.random() * 1000);
+      const resp = await proxyFetch(baseUrl + params);
+      if (resp && resp.ok) {
+        try {
+          const data = await resp.json();
+          if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
+          return this._parseYahooChart(data);
+        } catch (e) {
+          console.warn(`[fetchYahoo] ${symbol} JSON parse failed:`, e.message);
         }
       }
+      if (resp && resp.status === 429) {
+        const wait = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        console.warn(`[fetchYahoo] ${symbol} rate limited, retry in ${(wait / 1000).toFixed(1)}s`);
+        await _sleep(wait);
+        continue;
+      }
+      if (!range5d) {
+        const resp2 = await proxyFetch(baseUrl + '?range=max&interval=1d');
+        if (resp2 && resp2.ok) {
+          try {
+            const data2 = await resp2.json();
+            if (typeof SourceHealth !== 'undefined') SourceHealth.recordSuccess('yahoo');
+            return this._parseYahooChart(data2);
+          } catch (_) { /* fallthrough */ }
+        }
+      }
+      if (attempt < 2) await _sleep(Math.pow(2, attempt) * 1000 + Math.random() * 1000);
     }
     if (typeof SourceHealth !== 'undefined') SourceHealth.recordFailure('yahoo');
     return null;
@@ -493,10 +550,10 @@ const DataAPI = {
    * -------------------------------------------------------------- */
   async fetchVIX() {
     try {
-      const url = proxyUrl(
-        'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d'
+      const data = await proxyFetchJson(
+        'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d',
+        15, 'yahoo'
       );
-      const data = await cachedFetch(url, {}, 15, 'yahoo');
       if (!data) return null;
       const quotes = ((data.chart || {}).result || [{}])[0];
       const closes = ((quotes.indicators || {}).quote || [{}])[0].close || [];
@@ -668,9 +725,8 @@ const DataAPI = {
     if (!apiKey) return null;
     const rawUrl = `https://api.stlouisfed.org/fred/series/observations`
       + `?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=2`;
-    const url = proxyUrl(rawUrl);
     try {
-      const data = await cachedFetch(url, {}, 3600, 'fred');
+      const data = await proxyFetchJson(rawUrl, 3600, 'fred');
       if (!data) return null;
       const obs = data.observations || [];
       if (obs.length < 2) return null;
@@ -789,8 +845,7 @@ const DataAPI = {
    * -------------------------------------------------------------- */
   async fetchRSS(feedUrl) {
     try {
-      const url = proxyUrl(feedUrl);
-      const text = await fetchText(url, 'rss');
+      const text = await proxyFetchText(feedUrl, 'rss');
       if (!text) return null;
 
       // Parse XML in browser
