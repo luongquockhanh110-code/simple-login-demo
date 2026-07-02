@@ -550,10 +550,10 @@ const DataAPI = {
    * -------------------------------------------------------------- */
   async fetchVIX() {
     try {
-      const url = proxyUrl(
-        'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d'
+      const data = await proxyFetchJson(
+        'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d',
+        15, 'yahoo'
       );
-      const data = await cachedFetch(url, {}, 15, 'yahoo');
       if (!data) return null;
       const quotes = ((data.chart || {}).result || [{}])[0];
       const closes = ((quotes.indicators || {}).quote || [{}])[0].close || [];
