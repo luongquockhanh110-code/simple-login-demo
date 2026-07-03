@@ -5,6 +5,8 @@
     "": {
       "name": "financial-alert-system",
       "dependencies": {
+        "@fontsource/dm-sans": "^5.2.8",
+        "@fontsource/space-grotesk": "^5.2.10",
         "@tailwindcss/vite": "^4.3.2",
         "clsx": "^2.1.1",
         "echarts": "^6.1.0",
@@ -31,6 +33,10 @@
     "@emnapi/runtime": ["@emnapi/runtime@1.11.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw=="],
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
+
+    "@fontsource/dm-sans": ["@fontsource/dm-sans@5.2.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@fontsource/dm-sans/-/dm-sans-5.2.8.tgz", {}, "sha512-tlovG42m9ESG28WiHpLq3F5umAlm64rv0RkqTbYowRn70e9OlRr5a3yTJhrhrY+k5lftR/OFJjPzOLQzk8EfCA=="],
+
+    "@fontsource/space-grotesk": ["@fontsource/space-grotesk@5.2.10", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@fontsource/space-grotesk/-/space-grotesk-5.2.10.tgz", {}, "sha512-XNXEbT74OIITPqw2H6HXwPDp85fy43uxfBwFR5PU+9sLnjuLj12KlhVM9nZVN6q6dlKjkuN8JisW/OBxwxgUew=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
